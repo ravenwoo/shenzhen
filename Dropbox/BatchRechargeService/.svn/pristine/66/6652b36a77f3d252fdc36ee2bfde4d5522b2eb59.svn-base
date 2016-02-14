@@ -1,0 +1,96 @@
+package com.nnk.recharge.batch.config;
+
+import com.google.common.collect.Maps;
+import com.nnk.recharge.batch.entity.RechargeType;
+import org.apache.log4j.Logger;
+import javax.xml.bind.JAXBException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
+/**
+ * 加载配置
+ * Created by wusz on 2015/12/23.
+ */
+public class LoadConfig {
+
+    private static final Logger logger = Logger.getLogger(LoadConfig.class);
+
+    /**
+     * 系统配置缓存
+     * The constant SYSTEM_CONFIG_PROPERTIES.
+     */
+    public static final Map<String, String> SYSTEM_CONFIG_PROPERTIES = Maps.newHashMap();
+
+    public static HashMap<Integer, Integer> TypeMap = Maps.newHashMap();
+
+    static {
+        logger.info("开始加载系统配置...");
+        loadSystemConfig();
+        logger.info("开始加载充值类型配置...");
+        loadRechargeType();
+    }
+
+    private static void loadSystemConfig() {
+        File file = new File("config/system.properties");
+        if (!file.exists()) {
+            logger.warn("config目录下不存在此文件[system.properties]");
+        } else if (!file.canRead()) {
+            logger.warn("config目录下文件[system.properties]没有读取权限");
+        }
+        FileInputStream in = null;
+
+        try {
+            in = new FileInputStream(file);
+            Properties p = new Properties();
+            p.load(in);
+            SYSTEM_CONFIG_PROPERTIES.put("AutoCheckDatabaseTime", p.getProperty("system.autoCheck.database.time"));
+            SYSTEM_CONFIG_PROPERTIES.put("AutoCheckCacheTime", p.getProperty("system.autoCheck.cache.time"));
+            SYSTEM_CONFIG_PROPERTIES.put("EachTaskAmount", p.getProperty("batch.each.task.amount"));
+            SYSTEM_CONFIG_PROPERTIES.put("SystemQueryCount", p.getProperty("system.query.count"));
+            SYSTEM_CONFIG_PROPERTIES.put("OrderIdSystemMerid", p.getProperty("protocol.OrderIdSystem.merid"));
+            SYSTEM_CONFIG_PROPERTIES.put("OrderIdSystemAppName", p.getProperty("protocol.OrderIdSystem.appName"));
+            SYSTEM_CONFIG_PROPERTIES.put("OrderIdSystemCommand", p.getProperty("protocol.OrderIdSystem.command"));
+            SYSTEM_CONFIG_PROPERTIES.put("ProtocolSingKey", p.getProperty("protocol.sign.key"));
+            SYSTEM_CONFIG_PROPERTIES.put("ProtocolReSendTimes", p.getProperty("protocol.reSend.times"));
+            SYSTEM_CONFIG_PROPERTIES.put("WaitTimeMillisecond", p.getProperty("system.waitTime.millisecond"));
+            SYSTEM_CONFIG_PROPERTIES.put("OrderIdSystemUrlEncoder", p.getProperty("protocol.OrderIdSystem.url.encoder"));
+            SYSTEM_CONFIG_PROPERTIES.put("RechargeAppName", p.getProperty("protocol.recharge.appName"));
+            SYSTEM_CONFIG_PROPERTIES.put("RechargeCommand", p.getProperty("protocol.recharge.command"));
+            SYSTEM_CONFIG_PROPERTIES.put("SecurityProgramPath", p.getProperty("system.security.program.path"));
+
+
+        } catch (Exception e) {
+            logger.error(e);
+        } finally {
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException e) {
+                    logger.error(e);
+                }
+            }
+        }
+    }
+
+    public static void loadRechargeType() {
+        try {
+            RechargeType status = RechargeType.loadConfig("config/rechargeType.xml");
+            List<Param> params = status.getParam();
+            for (Param param : params) {
+                TypeMap.put(param.getType(), param.getCommand());
+            }
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            logger.error(e.getMessage(), e);
+        } catch (JAXBException e) {
+            // TODO Auto-generated catch block
+            logger.error(e.getMessage(), e);
+        }
+    }
+}

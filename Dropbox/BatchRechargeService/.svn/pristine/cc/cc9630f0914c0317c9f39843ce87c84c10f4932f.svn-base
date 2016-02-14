@@ -1,0 +1,36 @@
+package com.nnk.recharge.batch.task;
+
+import com.nnk.recharge.batch.config.ConfirmStatus;
+import com.nnk.recharge.batch.entity.db.BatchVo;
+import com.nnk.recharge.batch.service.BatchRechargeService;
+import com.nnk.recharge.batch.service.BatchQueryService;
+import com.nnk.recharge.batch.service.impl.BatchQueryServiceImpl;
+import org.apache.log4j.Logger;
+import java.util.List;
+import static com.nnk.recharge.batch.config.SystemConstant.AUTO_CHECK_DATABASE_TIME;
+
+/**
+ * 轮询任务
+ * Created by wusz on 2015/12/23.
+ */
+public class ScanDbTask implements Runnable {
+
+    private static final Logger logger = Logger.getLogger(ScanDbTask.class);
+
+    private BatchQueryService batchService = new BatchQueryServiceImpl();
+
+    @Override
+    public void run() {
+
+        logger.info("每" + AUTO_CHECK_DATABASE_TIME + "分钟检查批充任务，查询数据库中是否存在符合条件的待执行任务...");
+        List<BatchVo> batchVos = batchService.getRechargeTask(ConfirmStatus.RUNNABLE_STATUS);
+        for (BatchVo batchVo : batchVos) {
+            //检查是否存在于内存当中，将内存中没有的批次添加进去
+            if (BatchRechargeService.batchMap.containsKey(batchVo.getId())) {
+                BatchRechargeService.batchMap.remove(batchVo.getId());
+            }
+            BatchRechargeService.batchMap.put(batchVo.getId(), batchVo);
+        }
+    }
+
+}

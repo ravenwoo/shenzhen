@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='GBK'?>
+<rechargeType>
+<param type="1"  command="9" /><!--快充充值 -->
+<param type="2"  command="3" /><!--慢充充值 -->
+<param type="3"  command="2" /><!--代充 -->
+<param type="37"  command="37" /><!--流量充值 -->
+
+</rechargeType>

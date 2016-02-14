@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='GB2312'?>
+<server-conf>
+    <server-name>BatchRechargeService</server-name>
+    <app-name>BatchRechargeService</app-name>
+    <user>BRSUser</user>
+    <pwd>BRSPwd</pwd>
+    <enc-pwd>zfjeu45MOGw=</enc-pwd>
+    <!-- <pwd>XUE3ZyRZRog=</pwd> -->
+    <!--<host>10.1.101.217</host>-->
+    <host>10.1.100.250</host>
+    <port>6004</port>
+    <link-time>3000</link-time>
+    <selector-timeout>1000</selector-timeout>
+    <pulse-time>600000</pulse-time>
+
+    <apps>
+        <app name="*" cmd="NewReChargeTask" class="com.nnk.recharge.batch.action.NewReChargeAction" method="handler" comment="新批充请求" />
+    </apps>
+</server-conf>

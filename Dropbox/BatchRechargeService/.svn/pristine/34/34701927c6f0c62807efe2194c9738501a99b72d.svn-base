@@ -1,0 +1,68 @@
+package com.nnk.recharge.batch.dao;
+
+/**
+ * Created by wusz on 2015/12/30.
+ */
+public interface BatchExecuteDao {
+    /**
+     * Update cfm state int.
+     *
+     * @param id     the id
+     * @param status the status
+     * @return the int
+     */
+    int updateCfmState(long id, int status, int limitStatus);
+
+    /**
+     * Update cfm success int.
+     *
+     * @param id    the id
+     * @param count the count
+     * @return the int
+     */
+    int updateRechargeSuccess(long id, int count, long batchInputId);
+
+    /**
+     * Update cfm fail int.
+     *
+     * @param id    the id
+     * @param count the count
+     * @return the int
+     */
+    int updateCfmFail(long id, int count);
+
+    /**
+     * Update cmfresult int.
+     *
+     * @param id     the id
+     * @param result the result
+     * @return the int
+     */
+    int updateCmfresult(long id, int result);
+
+    /**
+     * Update process count int.
+     *
+     * @param id    the id
+     * @param count the count
+     * @return the int
+     */
+    int updateProcessCount(long id, long count);
+
+    /**
+     * Update processed count int.
+     *
+     * @param id    the id
+     * @param count the count
+     * @return the int
+     */
+    int updateProcessedCount(long id);
+
+    /**
+     * Init process count int.
+     *
+     * @param id the id
+     * @return the int
+     */
+    int initProcessCount(long id);
+}

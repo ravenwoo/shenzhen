@@ -1,0 +1,53 @@
+package com.nnk.recharge.batch.action;
+
+import com.nnk.recharge.batch.entity.db.BatchVo;
+import com.nnk.recharge.batch.service.BatchRechargeService;
+import com.nnk.recharge.batch.service.BatchQueryService;
+import com.nnk.recharge.batch.service.impl.BatchQueryServiceImpl;
+import nnk.msgsrv.server.Request;
+import org.apache.log4j.Logger;
+
+import java.util.Arrays;
+
+/**
+ * 新批充请求 Created by wusz on 2015/12/28.
+ */
+public class NewReChargeAction {
+
+	private Logger logger = Logger.getLogger(this.getClass());
+
+	private BatchQueryService batchService = new BatchQueryServiceImpl();
+
+	/**
+	 * Handler.
+	 * 
+	 * @param request
+	 *            the request
+	 * @throws Exception:q
+	 *             the exception
+	 */
+	public void handler(Request request) throws Exception {
+
+		logger.info("收到新批充请求：" + request);
+
+		String[] contents = request.getContent().split(" ");
+		if (contents.length < 4) {
+			request.setContent("协议格式不对");
+			request.write(request.toString());
+			throw new IllegalArgumentException("协议["
+					+ Arrays.toString(contents) + "]参数异常");
+		}
+
+		long id = Long.valueOf(contents[0]);
+		// 查询批次信息
+		BatchVo batchVo = batchService.getRechargeTask(id);
+//		System.out.println(batchVo);
+		// 如果内存中没有此批次，则添加入内存中
+//		if (BatchRechargeService.batchMap.containsKey(batchVo.getId())) {
+//			BatchRechargeService.batchMap.remove(batchVo.getId());
+//		}
+		BatchRechargeService.batchMap.put(batchVo.getId(), batchVo);
+		logger.info("缓存数据:" + BatchRechargeService.batchMap);
+
+	}
+}

@@ -1,0 +1,86 @@
+package com.nnk.recharge.batch.dao.impl;
+
+import com.nnk.recharge.batch.common.DBUtils;
+import com.nnk.recharge.batch.dao.BatchInputDao;
+import com.nnk.recharge.batch.dao.MyQueryBaseDao;
+import com.nnk.recharge.batch.entity.db.BatchInputVo;
+import org.apache.log4j.Logger;
+
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Created by wusz on 2015/12/23.
+ */
+public class BatchInputDaoImpl extends MyQueryBaseDao<BatchInputVo> implements BatchInputDao {
+
+    private static final Logger logger = Logger.getLogger(BatchInputDaoImpl.class);
+
+    public BatchInputDaoImpl() {
+        super(BatchInputVo.class, DBUtils.getOnlineDb());
+    }
+
+    @Override
+    public List<BatchInputVo> getBatchInputByBatchNo(long batchNo) {
+
+        StringBuilder sql = new StringBuilder();
+        sql.append("select id,batchno,merid,meraccount,type,mob,value,cardsn,cdkey,cardtype,cardid,timeout,orderid,sendorderid,cmfresult from BatchInput ");
+        sql.append(" where batchno=" + batchNo);
+        sql.append(" and cmfresult in (1,2)");
+        logger.info("查询批次详情[SQL]: " + sql.toString());
+        List<BatchInputVo> batchInputVos = super.find(sql.toString());
+        if (batchInputVos == null) {
+            return Collections.emptyList();
+        }
+        return batchInputVos;
+    }
+
+    @Override
+    public int updateSendOrderIdById(long id, String sendOrderId) {
+
+        String sql = "update BatchInput set sendorderid='" + sendOrderId + "' where id=" + id;
+
+        logger.info("更新sendOrderId[SQL]: " + sql.toString());
+
+        return super.executeUpdate(sql);
+    }
+
+    @Override
+    public int updateCmfresult(long id, int result) {
+
+        String sql = "update BatchInput set cmfresult=" + result + " where id=" + id;
+
+        logger.info("更新cmfresult[SQL]: " + sql.toString());
+
+        return super.executeUpdate(sql);
+    }
+
+    @Override
+    public List<BatchInputVo> isAllSuccess(long batchNo) {
+
+        String sql = "select id from BatchInput where batchno=" + batchNo + " and cmfresult=99";
+        List<BatchInputVo> batchInputVos = super.find(sql.toString());
+        if (batchInputVos == null) {
+            return Collections.emptyList();
+        }
+        return batchInputVos;
+    }
+
+	@Override
+	public int updateComment(long id, String comment) {
+		String sql = "update BatchInput set comment='" + comment + "' where id=" + id;
+
+        logger.info("更新comment[SQL]: " + sql.toString());
+
+        return super.executeUpdate(sql);
+	}
+
+	@Override
+	public int updateOrderId(long id, String orderid) {
+		String sql = "update BatchInput set orderid='" + orderid + "' where id=" + id;
+
+        logger.info("更新orderid[SQL]: " + sql.toString());
+
+        return super.executeUpdate(sql);
+	}
+}

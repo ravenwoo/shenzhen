@@ -1,0 +1,29 @@
+package com.nnk.recharge.batch.common;
+
+import com.nnk.dbsrv.DatabaseManager;
+
+public class DBUtils {
+    private static DatabaseManager ONLINE;
+
+    private DBUtils() {
+    }
+
+    public static void initDB() {
+
+        if (ONLINE == null) {
+            synchronized (DBUtils.class) {
+                if (ONLINE == null) {
+                    ONLINE = new DatabaseManager("config/db.properties");
+                    ONLINE.start();
+                }
+            }
+        }
+    }
+
+    public static DatabaseManager getOnlineDb() {
+        if (ONLINE == null) {
+            initDB();
+        }
+        return ONLINE;
+    }
+}

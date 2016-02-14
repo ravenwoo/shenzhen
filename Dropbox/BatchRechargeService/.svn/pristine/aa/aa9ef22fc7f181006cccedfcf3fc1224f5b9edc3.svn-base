@@ -1,0 +1,61 @@
+package com.nnk.recharge.batch.service.impl;
+
+import com.nnk.recharge.batch.dao.BatchDao;
+import com.nnk.recharge.batch.dao.impl.BatchDaoImpl;
+import com.nnk.recharge.batch.entity.db.BatchVo;
+import com.nnk.recharge.batch.service.BatchService;
+
+import java.util.List;
+
+/**
+ * Created by wusz on 2015/12/23.
+ */
+public class BatchServiceImpl implements BatchService {
+
+    private BatchDao batchDao = new BatchDaoImpl();
+
+    @Override
+    public List<BatchVo> getRechargeTask(int status) {
+        return batchDao.getRechargeTasks(status);
+    }
+
+    @Override
+    public int updateCfmState(long id, int status) {
+        return batchDao.updateCfmState(id, status);
+    }
+
+    @Override
+    public int updateCfmSuccess(long id, long count) {
+        return batchDao.updateCfmSuccess(id, count);
+    }
+
+    @Override
+    public int updateCfmFail(long id, long count) {
+        return batchDao.updateCfmFail(id, count);
+    }
+
+    @Override
+    public int updateCmfresult(long id, int result) {
+        return batchDao.updateCmfresult(id, result);
+    }
+
+    @Override
+    public BatchVo getRechargeTask(long id) {
+        return batchDao.getRechargeTask(id);
+    }
+
+    @Override
+    public int updateProcessCount(long id, long count) {
+        return batchDao.updateProcessCount(id, count);
+    }
+
+    @Override
+    public int updateProcessedCount(long id, long count) {
+        return batchDao.updateProcessedCount(id, count);
+    }
+
+    @Override
+    public int initProcessCount(long id) {
+        return batchDao.initProcessCount(id);
+    }
+}

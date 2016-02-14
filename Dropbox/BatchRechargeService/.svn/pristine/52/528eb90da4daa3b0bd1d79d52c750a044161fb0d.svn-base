@@ -1,0 +1,176 @@
+package com.nnk.recharge.batch.task;
+
+import com.nnk.recharge.batch.common.DateUtil;
+import com.nnk.recharge.batch.common.ProtocolUtil;
+import com.nnk.recharge.batch.config.ConfirmStatus;
+import com.nnk.recharge.batch.entity.db.BatchInputVo;
+import com.nnk.recharge.batch.entity.db.BatchVo;
+import com.nnk.recharge.batch.service.BatchExecuteService;
+import com.nnk.recharge.batch.service.BatchInputExecuteService;
+import com.nnk.recharge.batch.service.BatchInputQueryService;
+import com.nnk.recharge.batch.service.BatchQueryService;
+import com.nnk.recharge.batch.service.impl.BatchExecuteServiceImpl;
+import com.nnk.recharge.batch.service.impl.BatchInputExecuteServiceImpl;
+import com.nnk.recharge.batch.service.impl.BatchInputQueryServiceImpl;
+import com.nnk.recharge.batch.service.impl.BatchQueryServiceImpl;
+import org.apache.log4j.Logger;
+
+import java.util.Date;
+import java.util.List;
+
+import static com.nnk.recharge.batch.config.LoadConfig.TypeMap;
+
+/**
+ * 充值任务
+ * Created by wusz on 2015/12/23.
+ */
+public class RechargeTask implements Runnable {
+
+    private static final Logger logger = Logger.getLogger(RechargeTask.class);
+
+    private BatchInputQueryService batchInputQueryService = new BatchInputQueryServiceImpl();
+
+    private BatchInputExecuteService batchInputExecuteService = new BatchInputExecuteServiceImpl();
+
+    private BatchQueryService batchQueryService = new BatchQueryServiceImpl();
+
+    private BatchExecuteService batchExecuteService = new BatchExecuteServiceImpl();
+
+    private BatchVo batchVo;
+
+    public RechargeTask(BatchVo batchVo) {
+        this.batchVo = batchVo;
+    }
+
+    @Override
+    public void run() {
+        if (batchVo == null) {
+            return;
+        }
+        //更新任务状态为 执行中
+        int updateTaskResult = updateBatchCfmState(ConfirmStatus.PROCESSING_STATUS, ConfirmStatus.RUNNABLE_STATUS);
+        if (updateTaskResult < 1) {
+            logger.info("批次号【" + batchVo.getId() + "】更新任务状态失败，跳过此任务");
+            return;
+        }
+        //发送充值请求计数
+        long sendCount = 0;
+        long everyTimeSendMaxCount = batchVo.getEveryTimeSendMaxCount();
+        //加载批次详情
+        List<BatchInputVo> batchInputVos = batchInputQueryService.getBatchInputByBatchNo(batchVo.getId(), batchVo.getProcessCount());
+        if (batchInputVos.isEmpty()) {
+        	logger.info("批次号『" + batchVo.getId() + "』未能在BatchInput表中找到符合条件的记录...");
+        }
+//        if (batchVo.getProcessCount() > batchInputVos.size()) {
+//            logger.info("批次号『" + batchVo.getId() + "』批次详情有效数据小于Batch.processCount，不满足条件，不发起充值");
+//            //更新状态为 可执行
+//            updateBatchCfmState(ConfirmStatus.RUNNABLE_STATUS, ConfirmStatus.PROCESSING_STATUS);
+//            //重新放入内存当中
+//            BatchRechargeService.batchMap.put(batchVo.getId(), batchVo);
+//            return;
+//        }
+        
+        for (BatchInputVo batchInputVo : batchInputVos) {
+            //每发everyTimeSendMaxCount   停顿   sleepTime再发,everyTimeSendMaxCount ==0时不做停顿
+            if (everyTimeSendMaxCount != 0 && sendCount == batchVo.getEveryTimeSendMaxCount()) {
+                Long sleepTime = batchVo.getSleepTime() * 1000;
+                if (sleepTime > 0) {
+                    try {
+                        logger.info("按照设置的时间间隔分批发送充值请求...间隔『" + batchVo.getSleepTime() + "』秒");
+                        Thread.sleep(sleepTime);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                sendCount = 0;//重新计数
+            }
+            //对于BatchInput记录，只有BatchInput.cmfresult等于0/1/2的记录才能发起充值
+            if (batchInputVo.getCmfresult() != 0 && batchInputVo.getCmfresult() != 1 && batchInputVo.getCmfresult() != 2) {
+                continue;
+            }
+            /**
+             * 填写每一笔发起充值时的自身订单号，通过OrderIdSystem生成全局唯一的订单号，前缀是7BAT
+             * 生成后回写此字段再发起充值，重复发起时直接取此值
+             */
+            String sendOrderId = batchInputVo.getSendorderid();
+            if (sendOrderId.isEmpty() || sendOrderId.length() != 12) {
+                String day = DateUtil.formatDate(new Date(), "yyyyMMdd");
+                sendOrderId = ProtocolUtil.orderIdSystem(day);
+                if (sendOrderId.isEmpty() || sendOrderId.length() != 12) {
+                    continue;
+                }
+                //回写sendOrderId
+                int result = batchInputExecuteService.updateSendOrderIdById(batchInputVo.getId(), sendOrderId);
+                if (result < 1) {
+                    continue;
+                }
+                batchInputVo.setSendorderid(sendOrderId);
+            }
+            //原cmfresult
+            int cmfresult = batchInputVo.getCmfresult();
+            //发起充值
+            ProtocolUtil.rechargeRequest(batchInputVo, TypeMap.get(batchVo.getType()));
+//            //获取Batch当前的cfm_success和cfm_fail
+//            BatchVo batchCountVo = batchQueryService.getRechargeTask(batchVo.getId());
+            if (batchInputVo.getCmfresult() == 2) {
+                logger.info("充值失败：批次『" + batchInputVo.getBatchno() + "』的一笔【" + batchInputVo.toString() + "】");
+                //更新BatchInput.cmfresult为2
+                batchInputExecuteService.updateCmfresult(batchInputVo.getId(), 2);
+                //如果BatchInput.cmfresult原值是1，则Batch.cfm_fail加1，否则Batch.cfm_fail不做处理
+                if (cmfresult == 1) {
+                    batchExecuteService.updateCfmFail(batchVo.getId(), (1));
+                }
+            } else {
+                logger.info("充值成功：批次『" + batchInputVo.getBatchno() + "』的一笔【" + batchInputVo.toString() + "】");
+                //更新BatchInput.cmfresult为99
+                batchInputExecuteService.updateCmfresult(batchInputVo.getId(), 99);
+                //如果Distributor返回结果是成功,Batch.cfm_success+1，
+                batchExecuteService.updateCfmSuccess(batchVo.getId(), (1));
+                //如果BatchInput.cmfresult原值是2，则Batch.cfm_fail减1
+                if (cmfresult == 2) {
+                    batchExecuteService.updateCfmFail(batchVo.getId(), (-1));
+                }
+            }
+            
+//            007orderid是充值系统流水号，需回写BatchInput表orderid字段
+            batchInputExecuteService.updateOrderId(batchInputVo.getId(), batchInputVo.getOrderid());
+//            TranInfo是交易结果描述，会有引号引住，去引号后回写BatchInput表comment字段
+            batchInputExecuteService.updateComment(batchInputVo.getId(), batchInputVo.getComment());
+            
+            sendCount++;
+        }
+
+        //更新已执行数量Batch.processedCount:  processedCount + processCount
+        int updateProcessedCountResult = batchExecuteService.updateProcessedCount(batchVo.getId());
+        //Batch.orocessCount置为0,并将start_cfm_time置为 0000-00-00 00:00:00
+        if (updateProcessedCountResult > 0) {
+            batchExecuteService.initProcessCount(batchVo.getId());
+        }
+
+        //检查是否已全部执行完毕
+        BatchVo vo = batchQueryService.getRechargeTask(batchVo.getId());
+        if (vo.getTaskAmount() <= vo.getCfmSuccess()) {
+        	updateBatchCfmState(ConfirmStatus.PROCESSED_STATUS, ConfirmStatus.PROCESSING_STATUS);//更新状态为 已执行
+        }else {
+        	updateBatchCfmState(ConfirmStatus.INIT_STATUS, ConfirmStatus.PROCESSING_STATUS);
+        }
+
+        //检查批次详情中的成功笔数
+        List<BatchInputVo> batchInputSuccessVos = batchInputQueryService.isAllSuccess(batchVo.getId());
+        //当一批次的所有订单都成功了，Batch.cmfresult改成99
+        if (batchInputSuccessVos.size() >= batchVo.getTaskAmount()) {
+            batchExecuteService.updateCmfresult(batchVo.getId(), 99);
+        }
+
+    }
+    
+    /**
+     * 更新Batch。cfmstate
+     * @param cfmstate
+     * @param limitState
+     * @return
+     */
+    private int updateBatchCfmState(int cfmstate, int limitState) {
+    	return batchExecuteService.updateCfmState(batchVo.getId(), cfmstate, limitState);
+    }
+}

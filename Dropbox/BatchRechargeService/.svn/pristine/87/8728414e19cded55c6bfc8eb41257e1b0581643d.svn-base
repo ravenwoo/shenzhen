@@ -1,0 +1,51 @@
+################### this version need dbsrv-v2 and only support DBQuery ###################
+#com.mysql.jdbc.Driver
+#com.nnk.dbsrv.Driver
+#dbsrv.driverName=com.nnk.dbsrv.Driver
+#dbsrv.url=jdbc:mysql://192.168.0.250:3306/PartnerMoneyBalance?useUnicode=true&characterEncoding=GBK
+dbsrv.url=jdbc:mysql://10.1.100.250:3306/mycart?useUnicode=true&characterEncoding=GBK&zeroDateTimeBehavior=round
+#dbsrv.url=jdbc:mysql://10.2.50.230:3306/mycart?useUnicode=true&characterEncoding=GBK&zeroDateTimeBehavior=round
+#dbsrv.url=jdbc:dbsrv://192.168.12.253:6004/GameRechargeDBSrv?useUnicode=true&characterEncoding=GBK
+#-----dbsrv:Required  jdbc:Optional
+dbsrv.appName=dj
+#-----dbsrv:Required  jdbc:Required
+#dbsrv.userName=dj
+#dbsrv.userName=vpopmail
+dbsrv.userName=root
+#-----dbsrv:Required  jdbc:Required
+dbsrv.password=88877007
+#dbsrv.password=123456
+#dbsrv.password=1234
+#-----dbsrv:Required  jdbc:Required
+dbsrv.encPassword=8koBH3PPB2s=
+#dbsrv.encPassword=VFig4qtub0k=
+#default is false
+#-----dbsrv:Required  jdbc:Required   default:false
+dbsrv.debug=false
+#-----dbsrv:Required  jdbc:Optional   default is 3000
+dbsrv.linkTime=3000
+#default is 1000
+dbsrv.selectorTimeout=1000
+#-----dbsrv:Required  jdbc:Optional   default is 600000
+dbsrv.pulseTime=600000
+#-----dbsrv:Required  jdbc:Optional   default is 5000
+dbsrv.queryTimeout=20000
+
+#connector pool setting
+#-----dbsrv:Required  jdbc:Optional
+#Number of Connections a pool will try to acquire upon startup.
+dbsrv.initialPoolSize=1
+#Maximum number of Connections a pool will maintain at any given time.
+dbsrv.maxPoolSize=5
+#Minimum number of Connections a pool will maintain at any given time.
+dbsrv.minPoolSize=1
+#Determines how many connections at a time c3p0 will try to acquire when the pool is exhausted.
+dbsrv.acquireIncrement=2
+#If this is a number greater than 0, c3p0 will test all idle, pooled but unchecked-out connections, every this number of seconds.
+dbsrv.idleConnectionTestPeriod=60
+#
+dbsrv.maxIdleTime=600
+#Defines how many times c3p0 will try to acquire a new Connection from the database before giving up.
+dbsrv.acquireRetryAttempts=30
+#Milliseconds, time c3p0 will wait between acquire attempts.
+dbsrv.acquireRetryDelay=1000

@@ -1,0 +1,46 @@
+package com.nnk.recharge.batch.service.impl;
+
+import com.nnk.recharge.batch.dao.BatchInputDao;
+import com.nnk.recharge.batch.dao.impl.BatchInputDaoImpl;
+import com.nnk.recharge.batch.entity.db.BatchInputVo;
+import com.nnk.recharge.batch.service.BatchInputService;
+
+import java.util.List;
+
+/**
+ * Created by wusz on 2015/12/23.
+ */
+public class BatchInputServiceImpl implements BatchInputService {
+
+    private BatchInputDao batchInputDao = new BatchInputDaoImpl();
+
+    @Override
+    public List<BatchInputVo> getBatchInputByBatchNo(long batchNo) {
+        return batchInputDao.getBatchInputByBatchNo(batchNo);
+    }
+
+    @Override
+    public int updateSendOrderIdById(long id, String sendOrderId) {
+        return batchInputDao.updateSendOrderIdById(id, sendOrderId);
+    }
+
+    @Override
+    public int updateCmfresult(long id, int result) {
+        return batchInputDao.updateCmfresult(id, result);
+    }
+
+    @Override
+    public List<BatchInputVo> isAllSuccess(long batchNo) {
+        return batchInputDao.isAllSuccess(batchNo);
+    }
+
+	@Override
+	public int updateComment(long id, String comment) {
+		return batchInputDao.updateComment(id, comment);
+	}
+
+	@Override
+	public int updateOrderId(long id, String orderid) {
+		return batchInputDao.updateOrderId(id, orderid);
+	}
+}

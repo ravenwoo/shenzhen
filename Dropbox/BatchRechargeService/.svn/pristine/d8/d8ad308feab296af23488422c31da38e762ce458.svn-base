@@ -1,0 +1,220 @@
+package com.nnk.recharge.batch.common;
+
+import com.google.common.primitives.Ints;
+import com.nnk.recharge.batch.entity.db.BatchInputVo;
+import nnk.msgsrv.server.MsgSrvShortConnector;
+import org.apache.log4j.Logger;
+
+import java.net.URLDecoder;
+import java.util.Date;
+
+import static com.nnk.recharge.batch.config.SystemConstant.*;
+
+/**
+ * Created by wusz on 2015/12/24.
+ */
+public class ProtocolUtil {
+
+    private static final Logger logger = Logger.getLogger(ProtocolUtil.class);
+
+    private static MsgSrvShortConnector orderIdSystemConnector = new MsgSrvShortConnector("config/msgsrv-short-orderIdSystem.xml");
+    
+    private static MsgSrvShortConnector distributConnector = new MsgSrvShortConnector("config/msgsrv-short-distributor.xml");
+
+    /**
+     * 通过OrderIdSystem生成全局唯一的订单号
+     * Order id system string.
+     *
+     * @param day the day
+     * @return the string
+     */
+    public static String orderIdSystem(String day) {
+        String sendOrderId = "";
+        String successStatus = "1001";
+        String appName = PROTOCOL_ORDERIDSYSTEM_APPNAME;
+        String command = PROTOCOL_ORDERIDSYSTEM_COMMAND;
+        String merid = PROTOCOL_ORDERIDSYSTEM_MERID;
+        String sign = MD5Util.getMD5String(merid + " " + day + " " + "NA" + " " + "NA" + " " + "NA" + " " + PROTOCOL_SIGN_KEY);
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(appName);
+        sb.append(" ");
+        sb.append(command);
+        sb.append(" ");
+        sb.append(merid);
+        sb.append(" ");
+        sb.append(day);
+        sb.append(" ");
+        sb.append("NA");
+        sb.append(" ");
+        sb.append("NA");
+        sb.append(" ");
+        sb.append("NA");
+        sb.append(" ");
+        sb.append(sign);
+
+        try {
+            String response = "";
+
+            //如果返回为空，就重发
+            for (int i = 0; i < PROTOCOL_RESEND_TIMES; i++) {
+                if ("".equals(response)) {
+                    //是不是要关闭连接
+                	orderIdSystemConnector.setWaitTime(WAIT_TIME_MILLISECOND);
+                    response = orderIdSystemConnector.send(sb.toString());
+                } else break;
+            }
+
+            String decode = URLDecoder.decode(response, PROTOCOL_ORDERIDSYSTEM_URL_ENCODER);
+            logger.info("收到查询响应消息：" + decode);
+
+            String[] data = decode.split(" ");
+            if (data.length < 7) {
+                return sendOrderId;
+            }//不符合长度
+            String result = data[5];
+            if (!successStatus.equals(result)) {
+                return sendOrderId;
+            }//不成功
+            sendOrderId = data[4];
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            throw new RuntimeException();
+        }
+
+        return sendOrderId;
+    }
+
+    /**
+     * 发送充值请求至Distributor
+     * Recharge request batch input vo.
+     *
+     * @param vo      the vo
+     * @param command the command
+     * @return the batch input vo
+     */
+    public static void rechargeRequest(BatchInputVo vo, int command) {
+        String appName = PROTOCOL_RECHARGE_APPNAME;
+        String cmd = PROTOCOL_RECHARGE_COMMAND;
+        String merid = vo.getMerid();
+        String merAccount = vo.getMeraccount();
+        String oemOrderId = vo.getSendorderid();
+        long value = vo.getValue();
+        String timeout = vo.getTimeout() + "";
+        String sendTime = DateUtil.formatDate(new Date(), "yyyyMMddHHmmss");
+        String mob = "NA";
+        String cardsn = "NA";
+        String cdkey = "NA";
+        int[] array = {9, 3, 2, 37}; //快充充值、慢充充值、流量充值、代充
+        if (Ints.contains(array, command)) { //判断某数字是否有特定的整型数字
+            mob = vo.getMob();
+            if (command == 2) { //代充
+                cardsn = vo.getCardsn();
+                cdkey = vo.getCdkey();
+            }
+        }
+
+        //Distributor SlowInt Result 007orderid MerId MerAccount OemOrderid cardtype value timeout province command cardsn cdkey mob sendtime URL Attach
+        //[orgcommand realvalue chgtime cfmtime cbretry checktime TranInfo] [ChgerId ChgerName CurType] HadPay PartnerUserId PartnerCharge
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(appName);
+        sb.append(" ");
+        sb.append(cmd);
+        sb.append(" ");
+        sb.append("NA");
+        sb.append(" ");
+        sb.append("NA");
+        sb.append(" ");
+        sb.append(merid);
+        sb.append(" ");
+        sb.append(merAccount);
+        sb.append(" ");
+        sb.append(oemOrderId);
+        sb.append(" ");
+        sb.append("NA");
+        sb.append(" ");
+        sb.append(value);
+        sb.append(" ");
+        sb.append(timeout);
+        sb.append(" ");
+        sb.append("NA");
+        sb.append(" ");
+        sb.append(command);
+        sb.append(" ");
+        sb.append(cardsn);
+        sb.append(" ");
+        sb.append(cdkey);
+        sb.append(" ");
+        sb.append(mob);
+        sb.append(" ");
+        sb.append(sendTime);
+        sb.append(" ");
+        for (int i = 0; i < 15; i++) {
+            sb.append("NA");
+            sb.append(" ");
+        }
+
+        try {
+        	distributConnector.setWaitTime(WAIT_TIME_MILLISECOND);
+            String response = distributConnector.send(sb.toString());
+            if (response == null || response.isEmpty()) {
+            	vo.setCmfresult(2);
+                return ;
+            }
+
+            String decode = URLDecoder.decode(response, PROTOCOL_ORDERIDSYSTEM_URL_ENCODER);
+            logger.info("收到查询响应消息：" + decode);
+
+            String[] data = decode.split(" ");
+            if (data.length < 24) {
+            	vo.setCmfresult(2);
+                return ;
+            }
+            int result = Integer.valueOf(data[2]);
+            vo.setOrderid(data[3]);//007orderid是充值系统流水号，需回写BatchInput表orderid字段
+            String[] args = {"'","‘","“","\""};
+            vo.setComment(splitChars(data[24], args));//TranInfo是交易结果描述，会有引号引住，去引号后回写BatchInput表comment字段
+            if (result == 1 || result == 3) {//Result为1或3代表成功，其他为失败
+                vo.setCmfresult(99);
+            } else {
+                vo.setCmfresult(2);
+            }
+
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            throw null;
+        }
+    }
+
+    /**
+     * 检查签名，并返回布尔值
+     * @param contents
+     * @param key
+     * @return
+     */
+    public static boolean checkSignBoolean(String[] contents, String key) {
+        String md5 = contents[contents.length - 1];
+        StringBuffer protocol = new StringBuffer();
+        for (int i = 0; i < contents.length - 1; i++) {
+            protocol.append(contents[i]);
+        }
+        protocol.append(key);
+        return md5.equals(MD5Util.getMD5String(protocol.toString()));
+    }
+    
+    
+    public static String splitChars(String source, String[] args) {
+    	for (String str : args) {
+    		if (source.contains(str)) {
+    			StringBuffer sb = new StringBuffer();
+    			for(String s: source.split(str)){
+    			sb.append(s);
+    			}
+    			source = new String(sb);
+    		}
+    	}
+    	return source;
+    }
+
+}

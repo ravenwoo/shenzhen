@@ -1,0 +1,101 @@
+package com.nnk.recharge.batch.dao.impl;
+
+import com.nnk.recharge.batch.common.DBUtils;
+import com.nnk.recharge.batch.dao.BatchDao;
+import com.nnk.recharge.batch.dao.MyQueryBaseDao;
+import com.nnk.recharge.batch.entity.db.BatchVo;
+import org.apache.log4j.Logger;
+
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Created by wusz on 2015/12/23.
+ */
+public class BatchDaoImpl extends MyQueryBaseDao<BatchVo> implements BatchDao {
+
+    private static final Logger logger = Logger.getLogger(BatchDaoImpl.class);
+
+    public BatchDaoImpl() {
+        super(BatchVo.class, DBUtils.getOnlineDb());
+    }
+
+    @Override
+    public List<BatchVo> getRechargeTasks(int status) {
+
+        StringBuilder sql = new StringBuilder();
+        sql.append("select id,merid,cmftime,start_cfm_time,cfm_state,cfm_success,cfm_fail,everyTimeSendMaxCount,sleepTime,type,processCount,processedCount,task_amount from Batch where cmftime != '0000-00-00 00:00:00' ");
+        sql.append(" and cfm_state = " + status);
+
+        logger.info("加载可执行的批充任务[SQL]：" + sql.toString());
+        List<BatchVo> batchVos = super.find(sql.toString());
+        if (batchVos == null) {
+            return Collections.emptyList();
+        }
+        return batchVos;
+    }
+
+    @Override
+    public BatchVo getRechargeTask(long id) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("select id,merid,cmftime,start_cfm_time,cfm_state,cfm_success,cfm_fail,everyTimeSendMaxCount,sleepTime,type,processCount,processedCount,task_amount from Batch ");
+        sql.append("where id = " + id);
+
+        logger.info("根据批次号查找批次信息[SQL]：" + sql.toString());
+
+        return super.get(sql.toString());
+    }
+
+    @Override
+    public int updateCfmState(long id, int status) {
+
+        String sql = "update Batch set cfm_state =" + status + " where id=" + id;
+
+        logger.info("更新批充表的任务状态[SQL]: " + sql);
+
+        return super.executeUpdate(sql);
+    }
+
+    @Override
+    public int updateCfmSuccess(long id, long count) {
+        String sql = "update Batch set cfm_success=" + count + " where id=" + id;
+        logger.info("更新批充表成功计数[SQL]: " + sql);
+        return super.executeUpdate(sql);
+    }
+
+    @Override
+    public int updateCfmFail(long id, long count) {
+        String sql = "update Batch set cfm_fail=" + count + " where id=" + id;
+        logger.info("更新批充表失败计数[SQL]: " + sql);
+        return super.executeUpdate(sql);
+    }
+
+    @Override
+    public int updateCmfresult(long id, int result) {
+        String sql = "update Batch set cmfresult=" + result + " where id=" + id;
+        logger.info("更新批充表Batch.Cmfresult[SQL]: " + sql);
+        return super.executeUpdate(sql);
+    }
+
+    @Override
+    public int updateProcessCount(long id, long count) {
+        String sql = "update Batch set processCount=" + count + " where id=" + id;
+        logger.info("更新批充表Batch.processCount [SQL]: " + sql);
+        return super.executeUpdate(sql);
+    }
+
+    @Override
+    public int updateProcessedCount(long id, long count) {
+        String sql = "update Batch set processedCount=" + count + " where id=" + id;
+        logger.info("更新批充表Batch.processedCount [SQL]: " + sql);
+        return super.executeUpdate(sql);
+    }
+
+    @Override
+    public int initProcessCount(long id) {
+        String sql = "update Batch set processCount=0,start_cfm_time='0000-00-00 00:00:00' where id=" + id;
+        logger.info("初始化批充表Batch.processCount 和 start_cfm_time [SQL]: " + sql);
+        return super.executeUpdate(sql);
+    }
+
+}

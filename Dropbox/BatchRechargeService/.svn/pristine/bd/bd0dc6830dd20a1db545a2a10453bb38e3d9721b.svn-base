@@ -1,0 +1,89 @@
+package com.nnk.recharge.batch.dao;
+
+import com.nnk.recharge.batch.entity.db.BatchVo;
+
+import java.util.List;
+
+/**
+ * Created by wusz on 2015/12/23.
+ */
+public interface BatchDao {
+
+    /**
+     * Gets recharge task.
+     *
+     * @param status the status
+     * @return the recharge task
+     */
+    List<BatchVo> getRechargeTasks(int status);
+
+    /**
+     * Gets recharge task.
+     *
+     * @param id the id
+     * @return the recharge task
+     */
+    BatchVo getRechargeTask(long id);
+
+    /**
+     * Update cfm state int.
+     *
+     * @param id     the id
+     * @param status the status
+     * @return the int
+     */
+    int updateCfmState(long id, int status);
+
+    /**
+     * Update cfm success int.
+     *
+     * @param id    the id
+     * @param count the count
+     * @return the int
+     */
+    int updateCfmSuccess(long id, long count);
+
+    /**
+     * Update cfm fail int.
+     *
+     * @param id    the id
+     * @param count the count
+     * @return the int
+     */
+    int updateCfmFail(long id, long count);
+
+    /**
+     * Update cmfresult int.
+     *
+     * @param id     the id
+     * @param result the result
+     * @return the int
+     */
+    int updateCmfresult(long id, int result);
+
+    /**
+     * Update process count int.
+     *
+     * @param id    the id
+     * @param count the count
+     * @return the int
+     */
+    int updateProcessCount(long id, long count);
+
+    /**
+     * Update processed count int.
+     *
+     * @param id    the id
+     * @param count the count
+     * @return the int
+     */
+    int updateProcessedCount(long id, long count);
+
+    /**
+     * Init process count int.
+     *
+     * @param id the id
+     * @return the int
+     */
+    int initProcessCount(long id);
+}
